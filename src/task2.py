@@ -9,15 +9,12 @@ from src.utils import save_figure
 
 
 def analyze_f_sample(sample: np.ndarray, n1: int, n2: int) -> pd.DataFrame:
-    """Вычисляет числовые характеристики выборки (как в Mathcad) и теоретические значения."""
-    # Выборочные характеристики (по аналогии с mean, median, var, stdev, min, max в Mathcad)
     s_mean = np.mean(sample)
     s_median = np.median(sample)
     s_var = np.var(sample, ddof=1)
     s_std = np.std(sample, ddof=1)
     s_min, s_max = np.min(sample), np.max(sample)
 
-    # Теоретические моменты F-распределения (существуют при n2 > 2 и n2 > 4)
     t_mean = n2 / (n2 - 2) if n2 > 2 else np.nan
     t_var = (2 * n2**2 * (n1 + n2 - 2)) / (n1 * (n2 - 2)**2 * (n2 - 4)) if n2 > 4 else np.nan
 
@@ -40,7 +37,6 @@ def analyze_f_sample(sample: np.ndarray, n1: int, n2: int) -> pd.DataFrame:
 
 
 def save_table_png(df: pd.DataFrame, filename: str) -> None:
-    """Сохраняет таблицу характеристик в PNG."""
     fig, ax = plt.subplots(figsize=(6.5, 4.2))
     ax.axis('off')
     table = ax.table(cellText=df.values, colLabels=df.columns, loc='center', cellLoc='left', colWidths=[0.68, 0.32])
@@ -65,11 +61,10 @@ def save_table_png(df: pd.DataFrame, filename: str) -> None:
 
 
 def plot_pdf_cdf_ppf(n1: int, n2: int, out_dir: str) -> None:
-    """Строит графики плотности dF(x), функции распределения pF(x) и процентилей qF(alpha)."""
     x = np.linspace(0.001, 5.0, 500)
     alpha = np.linspace(0.01, 0.99, 500)
 
-    # 1. Плотность вероятности dF(x, n1, n2)
+    # Плотность вероятности
     fig, ax = plt.subplots(figsize=(6.5, 4.5))
     ax.plot(x, stats.f.pdf(x, n1, n2), color='steelblue', lw=2)
     ax.set_title(f'Плотность вероятности dF(x, {n1}, {n2})')
@@ -78,7 +73,7 @@ def plot_pdf_cdf_ppf(n1: int, n2: int, out_dir: str) -> None:
     fig.tight_layout()
     save_figure(fig, f"{out_dir}/1_pdf_dF.png")
 
-    # 2. Функция распределения pF(x, n1, n2)
+    # Функция распределения
     fig, ax = plt.subplots(figsize=(6.5, 4.5))
     ax.plot(x, stats.f.cdf(x, n1, n2), color='seagreen', lw=2)
     ax.set_title(f'Функция распределения pF(x, {n1}, {n2})')
@@ -87,7 +82,7 @@ def plot_pdf_cdf_ppf(n1: int, n2: int, out_dir: str) -> None:
     fig.tight_layout()
     save_figure(fig, f"{out_dir}/2_cdf_pF.png")
 
-    # 3. Функция значений процентилей qF(alpha, n1, n2)
+    # Функция значений процентилей
     fig, ax = plt.subplots(figsize=(6.5, 4.5))
     ax.plot(alpha, stats.f.ppf(alpha, n1, n2), color='darkorange', lw=2)
     ax.set_title(f'Функция процентилей qF(α, {n1}, {n2})')
@@ -98,7 +93,6 @@ def plot_pdf_cdf_ppf(n1: int, n2: int, out_dir: str) -> None:
 
 
 def plot_sample_hist(sample: np.ndarray, n1: int, n2: int, filename: str) -> None:
-    """Строит гистограмму смоделированной выборки и накладывает теоретическую плотность."""
     fig, ax = plt.subplots(figsize=(6.5, 4.5))
     sns.histplot(sample, bins=10, stat='density', color='steelblue', edgecolor='black', alpha=0.6, label='Выборка (m=100)', ax=ax)
 
@@ -117,23 +111,20 @@ def main():
     sns.set_theme(style="whitegrid")
     out_dir = "../output/task2"
 
-    # Задаем параметры F-распределения (n1, n2 > 4, чтобы существовали среднее и дисперсия)
+    # Задаем параметры
     n1, n2 = 5, 10
     m = 100
 
-    # Моделируем случайную выборку rF(m, n1, n2) с фиксированным seed для воспроизводимости
+    # Генерируем случайную выборку
     np.random.seed(42)
     sample = stats.f.rvs(n1, n2, size=m)
 
-    # Вычисляем и сохраняем числовые характеристики
     summary_df = analyze_f_sample(sample, n1, n2)
     print(summary_df.to_string(index=False))
     save_table_png(summary_df, f"{out_dir}/0_f_stats_table.png")
 
-    # Строим и сохраняем все 4 графика
     plot_pdf_cdf_ppf(n1, n2, out_dir)
     plot_sample_hist(sample, n1, n2, f"{out_dir}/4_sample_hist.png")
-    print(f"\nВсе файлы сохранены в папку: {out_dir}")
 
 
 if __name__ == "__main__":

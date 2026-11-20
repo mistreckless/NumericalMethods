@@ -8,7 +8,6 @@ from src.utils import save_figure
 
 
 def calculate_summary_stats(data: np.ndarray) -> pd.DataFrame:
-    """Вычисляет суммарные статистики (аналог модуля Summary Statistics в STATGRAPHICS)."""
     n = len(data)
     mean = np.mean(data)
     std = np.std(data, ddof=1)
@@ -44,7 +43,6 @@ def calculate_summary_stats(data: np.ndarray) -> pd.DataFrame:
 
 
 def save_stats_table_png(df: pd.DataFrame, filename: str) -> None:
-    """Рендерит DataFrame со статистиками в таблицу и сохраняет в PNG."""
     formatted_df = df.copy()
     formatted_df['Значение'] = formatted_df.apply(
         lambda row: f"{int(row['Значение'])}" if 'Count' in row[
@@ -85,7 +83,6 @@ def save_stats_table_png(df: pd.DataFrame, filename: str) -> None:
 
 
 def plot_histogram(data: np.ndarray, filename) -> None:
-    """Строит и сохраняет гистограмму частот с кривой плотности."""
     mean = np.mean(data)
     median = np.median(data)
 
@@ -104,7 +101,6 @@ def plot_histogram(data: np.ndarray, filename) -> None:
 
 
 def plot_qq(data: np.ndarray, filename: str) -> None:
-    """Строит и сохраняет нормальный квантильный график (Normal Q-Q Plot)."""
     fig, ax = plt.subplots(figsize=(7, 5))
     stats.probplot(data, dist="norm", plot=ax)
 
@@ -121,7 +117,6 @@ def plot_qq(data: np.ndarray, filename: str) -> None:
 
 
 def plot_scatter(data: np.ndarray, filename: str) -> None:
-    """Строит и сохраняет диаграмму рассеивания по номеру измерения."""
     n = len(data)
     mean = np.mean(data)
     std = np.std(data, ddof=1)
@@ -154,7 +149,6 @@ def main():
     stats_df = calculate_summary_stats(capacitance_data)
     print(stats_df.to_string(index=False, float_format=lambda x: f"{x:.5f}"))
 
-    # Теперь можно передавать любые вложенные или относительные пути
     save_stats_table_png(stats_df, "../output/task1/summary_table.png")
     plot_histogram(capacitance_data, "../output/task1/histogram.png")
     plot_qq(capacitance_data, "../output/task1/qq_plot.png")
