@@ -4,39 +4,18 @@ import pandas as pd
 import seaborn as sns
 from scipy import stats
 
-from src.utils import save_figure
-
-
-def urand_generator(seed: int = 12345):
-    """Классический генератор равномерных чисел URAND на интервале (0, 1)."""
-    state = seed
-    mod = 2**31
-    a = 843314861
-    c = 453816693
-    while True:
-        state = (a * state + c) % mod
-        u = state / mod
-        if 0.0 < u < 1.0:
-            yield u
+from src.utils import save_figure, urand_generator
 
 
 def generate_gamma_full(sample_size: int, alpha: float, beta: float, seed: int = 42) -> np.ndarray:
-    """
-    Моделирование выборки гамма-распределения для любого нецелого alpha > 0
-    строго по полной системе формул из методички (через URAND).
-    """
-    if alpha <= 0 or float(alpha).is_integer():
-        raise ValueError("Параметр alpha должен быть положительным нецелым числом (например, 2.6).")
 
     rng = urand_generator(seed)
     sample = np.zeros(sample_size)
 
-    # Разложение alpha на целую и дробную части по формулам методички:
-    m = int(np.floor(alpha + 1)) - 1   # число множителей [alpha + 1] - 1
-    alpha_1 = alpha - np.floor(alpha)  # дробная часть alpha - [alpha] в (0, 1)
+    m = int(np.floor(alpha + 1)) - 1
+    alpha_1 = alpha - np.floor(alpha)
 
     for k in range(sample_size):
-        # 1. Моделирование x для дробной части alpha_1 (метод отбора)
         while True:
             r1 = next(rng)
             r2 = next(rng)
@@ -47,7 +26,6 @@ def generate_gamma_full(sample_size: int, alpha: float, beta: float, seed: int =
                 x = -beta * (s1 / (s1 + s2)) * np.log(r3)
                 break
 
-        # 2. Учет целой части через произведение m равномерных чисел r_i
         prod_r = 1.0
         for _ in range(m):
             prod_r *= next(rng)
@@ -59,7 +37,6 @@ def generate_gamma_full(sample_size: int, alpha: float, beta: float, seed: int =
 
 
 def compare_samples_table(custom_sample: np.ndarray, builtin_sample: np.ndarray, alpha: float, beta: float) -> pd.DataFrame:
-    """Сравнивает выборку по формуле (URAND), встроенную (аналог rgamma) и теорию."""
     t_mean = alpha * beta
     t_var = alpha * (beta ** 2)
 
@@ -90,7 +67,6 @@ def compare_samples_table(custom_sample: np.ndarray, builtin_sample: np.ndarray,
 
 
 def save_comparison_table_png(df: pd.DataFrame, filename: str) -> None:
-    """Сохраняет сравнительную таблицу в PNG."""
     fig, ax = plt.subplots(figsize=(8.5, 3.8))
     ax.axis('off')
     table = ax.table(cellText=df.values, colLabels=df.columns, loc='center', cellLoc='center', colWidths=[0.31, 0.25, 0.25, 0.19])
@@ -115,29 +91,26 @@ def save_comparison_table_png(df: pd.DataFrame, filename: str) -> None:
 
 
 def plot_comparison(custom_sample: np.ndarray, builtin_sample: np.ndarray, alpha: float, beta: float, out_dir: str) -> None:
-    """Строит графики последовательностей и сравнительную гистограмму плотностей."""
     indices = np.arange(1, len(custom_sample) + 1)
 
-    # 1. Графики самих выборок (по номеру испытания)
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.5), sharey=True)
 
-    axes.plot(indices, custom_sample, marker='o', markersize=4, linestyle='-', lw=1, color='steelblue')
-    axes.axhline(np.mean(custom_sample), color='red', linestyle='--', label=f'Среднее = {np.mean(custom_sample):.3f}')
-    axes.set_title(f'По формуле методички (URAND), α={alpha}, β={beta}')
-    axes.set_xlabel('Номер испытания')
-    axes.set_ylabel('Значение y')
-    axes.legend()
+    axes[0].plot(indices, custom_sample, marker='o', markersize=4, linestyle='-', lw=1, color='steelblue')
+    axes[0].axhline(np.mean(custom_sample), color='red', linestyle='--', label=f'Среднее = {np.mean(custom_sample):.3f}')
+    axes[0].set_title(f'По формуле методички (URAND), α={alpha}, β={beta}')
+    axes[0].set_xlabel('Номер испытания')
+    axes[0].set_ylabel('Значение y')
+    axes[0].legend()
 
-    axes.plot(indices, builtin_sample, marker='s', markersize=4, linestyle='-', lw=1, color='seagreen')
-    axes.axhline(np.mean(builtin_sample), color='red', linestyle='--', label=f'Среднее = {np.mean(builtin_sample):.3f}')
-    axes.set_title(f'Встроенный генератор (rgamma), α={alpha}, β={beta}')
-    axes.set_xlabel('Номер испытания')
-    axes.legend()
+    axes[1].plot(indices, builtin_sample, marker='s', markersize=4, linestyle='-', lw=1, color='seagreen')
+    axes[1].axhline(np.mean(builtin_sample), color='red', linestyle='--', label=f'Среднее = {np.mean(builtin_sample):.3f}')
+    axes[1].set_title(f'Встроенный генератор (rgamma), α={alpha}, β={beta}')
+    axes[1].set_xlabel('Номер испытания')
+    axes[1].legend()
 
     fig.tight_layout()
     save_figure(fig, f"{out_dir}/1_samples_sequences.png")
 
-    # 2. Сравнительная гистограмма с теоретической кривой плотности
     fig, ax = plt.subplots(figsize=(7.5, 5))
     bins = np.linspace(0, max(np.max(custom_sample), np.max(builtin_sample)), 11)
 
@@ -160,24 +133,19 @@ def main():
     sns.set_theme(style="whitegrid")
     out_dir = "../output/task3"
 
-    # Параметры: нецелое alpha > 0 и параметр масштаба beta > 0
     alpha = 2.6
     beta = 1.5
     sample_size = 100
 
-    # 1. Генерация по полной формуле методички (URAND)
     custom_sample = generate_gamma_full(sample_size=sample_size, alpha=alpha, beta=beta, seed=101)
 
-    # 2. Генерация встроенной функцией (аналог rgamma в Mathcad)
     np.random.seed(101)
     builtin_sample = stats.gamma.rvs(a=alpha, scale=beta, size=sample_size)
 
-    # 3. Таблица и графики
     comp_df = compare_samples_table(custom_sample, builtin_sample, alpha, beta)
     print(comp_df.to_string(index=False))
     save_comparison_table_png(comp_df, f"{out_dir}/0_gamma_comparison_table.png")
     plot_comparison(custom_sample, builtin_sample, alpha, beta, out_dir)
-    print(f"\nГотово! Файлы сохранены в: {out_dir}")
 
 
 if __name__ == "__main__":
